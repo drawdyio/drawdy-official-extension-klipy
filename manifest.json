@@ -4,6 +4,6 @@
   "driverVersion": "0.1.0",
   "description": "Search Klipy's GIF library and drag GIFs straight onto the canvas.",
   "main": "main.js",
-  "icon": "/assets/klipy.svg",
+  "icon": "assets/klipy.svg",
   "permissions": ["dom", "scene", "storage"]
 }

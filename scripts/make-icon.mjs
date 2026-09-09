@@ -8,10 +8,10 @@
 // key out a colour, so it is used purely to decode the JPEG into a BMP that
 // this script can read pixel by pixel.
 //
-// The manifest carries the markup inline rather than a filename because the
-// packer only puts manifest.json and main.js in the .drawdyx — a file
-// reference would dangle. assets/klipy.svg stays the one source of truth: the
-// manifest field is generated from it, never hand-edited.
+// The manifest points at assets/klipy.svg by relative path: the registry
+// validator rejects anything else ("icon must be a relative path to a .png,
+// .webp or .svg file in the repository"), including inline markup and any
+// path with a leading slash. assets/klipy.svg stays the one source of truth.
 //
 // Run: npm run icon
 
@@ -172,12 +172,13 @@ const markup =
     ` x="0" y="0" width="${VIEWBOX}" height="${VIEWBOX}" /></svg>`;
 writeFileSync(OUT, `${markup}\n`);
 
-// The rollup .svg loader trims what it reads, so the driver gets back exactly
-// the string stored in the manifest.
+// Relative to the repository root, with no leading slash — the two things the
+// registry validator checks.
+const ICON_PATH = "assets/klipy.svg";
 const manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
-manifest.icon = markup;
+manifest.icon = ICON_PATH;
 writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
 
 console.log(
-    `icon ${SIZE}x${SIZE} from ${width}x${height}, crop ${side}px -> assets/klipy.svg + manifest.json icon (${markup.length} bytes)`
+    `icon ${SIZE}x${SIZE} from ${width}x${height}, crop ${side}px -> ${ICON_PATH} (${markup.length} bytes) + manifest.json icon`
 );
