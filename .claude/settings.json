@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file assets/*.jpeg)",
+      "Bash(sips -g pixelWidth -g pixelHeight assets/idTssXt8hh_logos.jpeg)",
+      "Bash(python3 -c \"import PIL; print\\('PIL', PIL.__version__\\)\")",
+      "Bash(sips -s format bmp /Users/kitipatteachasupinun/Desktop/drawdy-official-extension-klipy/assets/idTssXt8hh_logos.jpeg --out logo.bmp)",
+      "Bash(node make-icon.mjs logo.bmp icon64.png 64)",
+      "Bash(sips -g hasAlpha -g pixelWidth icon64.png)",
+      "Bash(node -e ' *)",
+      "Bash(node scripts/make-icon.mjs)",
+      "Bash(grep -o \"data:image/png;base64,[A-Za-z0-9+/=]\\\\{0,40\\\\}\" dist/main.js)"
+    ]
+  }
+}

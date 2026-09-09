@@ -1,0 +1,9 @@
+{
+  "driverId": "drawdy.klipy",
+  "driverName": "Klipy GIFs",
+  "driverVersion": "0.1.0",
+  "description": "Search Klipy's GIF library and drag GIFs straight onto the canvas.",
+  "main": "main.js",
+  "icon": "/klipy.svg",
+  "permissions": ["dom", "scene", "storage"]
+}
