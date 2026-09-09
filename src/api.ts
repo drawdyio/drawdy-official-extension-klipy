@@ -1,4 +1,4 @@
-import { BUILD_API_BASE } from "virtual:klipy-env";
+import { BUILD_API_BASE } from "./env";
 import { GifItem, SearchErrorKind } from "./types";
 
 export class KlipyError extends Error {

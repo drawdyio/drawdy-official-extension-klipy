@@ -4,7 +4,7 @@ import {
   DriverModule,
   ModuleStyling,
 } from "@drawdy/driver-protocol";
-import KLIPY_SVG from "../assets/klipy.svg";
+import { KLIPY_SVG } from "./icon";
 import { DEFAULT_MEDIA_TYPE, mediaTypeConfig, PER_PAGE } from "./consts";
 import { fetchGifs, KlipyError } from "./api";
 import { DriverToWebview, GifItem, WebviewToDriver } from "./types";
