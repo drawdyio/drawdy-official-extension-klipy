@@ -1,5 +1,6 @@
+import { mediaTypeConfig } from "./consts";
 import { BUILD_API_BASE } from "./env";
-import { GifItem, SearchErrorKind } from "./types";
+import { MediaItem, MediaTypeId, SearchErrorKind } from "./types";
 
 export class KlipyError extends Error {
   public readonly kind: SearchErrorKind;
@@ -11,25 +12,30 @@ export class KlipyError extends Error {
   }
 }
 
-export type FetchGifsArgs = {
+export type FetchMediaArgs = {
+  media: MediaTypeId;
   customerId: string;
   query: string;
   page: number;
   perPage: number;
 };
 
-export type GifPage = {
-  items: GifItem[];
+export type MediaPage = {
+  items: MediaItem[];
   hasNext: boolean;
 };
 
 type ProxyResponse = {
-  items?: GifItem[];
+  items?: MediaItem[];
   hasNext?: boolean;
   error?: string;
 };
 
-export async function fetchGifs(args: FetchGifsArgs): Promise<GifPage> {
+/**
+ * Searches (or, with an empty query, lists trending) one Klipy media type
+ * through the Drawdy backend proxy. All three routes share one response shape.
+ */
+export async function fetchMedia(args: FetchMediaArgs): Promise<MediaPage> {
   const params = new URLSearchParams({
     page: String(args.page),
     per_page: String(args.perPage),
@@ -37,7 +43,7 @@ export async function fetchGifs(args: FetchGifsArgs): Promise<GifPage> {
   });
   const query = args.query.trim();
   if (query) params.set("q", query);
-  const url = `${BUILD_API_BASE}/api/klipy/gifs?${params}`;
+  const url = `${BUILD_API_BASE}/api/klipy/${args.media}?${params}`;
 
   let res: Response;
   try {
@@ -45,7 +51,7 @@ export async function fetchGifs(args: FetchGifsArgs): Promise<GifPage> {
   } catch {
     throw new KlipyError(
       "network",
-      "Could not reach the GIF search service. Check your connection and try again.",
+      "Could not reach KLIPY. Check your connection and try again.",
     );
   }
 
@@ -57,9 +63,10 @@ export async function fetchGifs(args: FetchGifsArgs): Promise<GifPage> {
   }
 
   if (!res.ok || !body || !Array.isArray(body.items)) {
+    const label = mediaTypeConfig(args.media).singular;
     throw new KlipyError(
       "other",
-      body?.error ?? `GIF search failed (HTTP ${res.status}).`,
+      body?.error ?? `${label} search failed (HTTP ${res.status}).`,
     );
   }
 

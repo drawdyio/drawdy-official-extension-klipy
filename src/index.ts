@@ -5,13 +5,21 @@ import {
   ModuleStyling,
 } from "@drawdy/driver-protocol";
 import { KLIPY_SVG } from "./icon";
-import { DEFAULT_MEDIA_TYPE, mediaTypeConfig, PER_PAGE } from "./consts";
-import { fetchGifs, KlipyError } from "./api";
-import { DriverToWebview, GifItem, WebviewToDriver } from "./types";
+import {
+  DEFAULT_MEDIA_TYPE,
+  mediaTypeConfig,
+  PER_PAGE,
+  WEBVIEW_MEDIA_TYPES,
+} from "./consts";
+import { fetchMedia, KlipyError } from "./api";
+import {
+  DriverToWebview,
+  MediaItem,
+  MediaTypeId,
+  WebviewToDriver,
+} from "./types";
 import { loadCustomerId, randomUuid, StorageCtx } from "./storage";
 import { WEBVIEW_HTML } from "./webview-html";
-
-const media = mediaTypeConfig(DEFAULT_MEDIA_TYPE);
 
 let requestId = 0;
 
@@ -155,19 +163,28 @@ export const onEvent: DriverModule["onEvent"] = async (e) => {
 async function handleWebviewMessage(message: WebviewToDriver): Promise<void> {
   switch (message.type) {
     case "ready": {
-      post({ type: "init" });
+      post({
+        type: "init",
+        mediaTypes: WEBVIEW_MEDIA_TYPES,
+        defaultMedia: DEFAULT_MEDIA_TYPE,
+      });
       return;
     }
     case "search": {
-      await runSearch(message.requestId, message.query, message.page);
+      await runSearch(
+        message.requestId,
+        message.media,
+        message.query,
+        message.page,
+      );
       return;
     }
-    case "drop-gif": {
-      await placeGif(message.gif, message.x, message.y);
+    case "drop-media": {
+      await placeMedia(message.media, message.item, message.x, message.y);
       return;
     }
-    case "insert-gif": {
-      await insertAtViewportCenter(message.gif);
+    case "insert-media": {
+      await insertAtViewportCenter(message.media, message.item);
       return;
     }
   }
@@ -175,12 +192,16 @@ async function handleWebviewMessage(message: WebviewToDriver): Promise<void> {
 
 async function runSearch(
   id: number,
+  requestedMedia: MediaTypeId,
   query: string,
   page: number,
 ): Promise<void> {
   if (!customerId) customerId = randomUuid();
+  // Unknown ids fall back to the default type rather than hitting a 404.
+  const media = mediaTypeConfig(requestedMedia).id;
   try {
-    const result = await fetchGifs({
+    const result = await fetchMedia({
+      media,
       customerId,
       query,
       page,
@@ -189,6 +210,7 @@ async function runSearch(
     post({
       type: "results",
       requestId: id,
+      media,
       query,
       page,
       items: result.items,
@@ -204,8 +226,9 @@ async function runSearch(
   }
 }
 
-async function insertGif(
-  gif: GifItem,
+async function insertMedia(
+  media: MediaTypeId,
+  item: MediaItem,
   canvasX: number,
   canvasY: number,
 ): Promise<void> {
@@ -217,10 +240,10 @@ async function insertGif(
   });
   if (!driver || info.res.error !== undefined) return;
   const zoom = info.res.value.zoom;
-  const width = media.screenWidth / zoom;
+  const width = mediaTypeConfig(media).screenWidth / zoom;
   const ratio =
-    gif.full.width > 0 && gif.full.height > 0
-      ? gif.full.height / gif.full.width
+    item.full.width > 0 && item.full.height > 0
+      ? item.full.height / item.full.width
       : 1;
   const height = width * ratio;
   const elementId = driver.generateId();
@@ -247,7 +270,7 @@ async function insertGif(
             children: [
               {
                 type: "image",
-                child: gif.full.url,
+                child: item.full.url,
                 styles: {
                   width: [width, "px"],
                   height: [height, "px"],
@@ -261,8 +284,9 @@ async function insertGif(
   });
 }
 
-async function placeGif(
-  gif: GifItem,
+async function placeMedia(
+  media: MediaTypeId,
+  item: MediaItem,
   iframeX: number,
   iframeY: number,
 ): Promise<void> {
@@ -293,10 +317,13 @@ async function placeGif(
   if (!driver || canvasRes.res.error !== undefined) return;
   const { x, y } = canvasRes.res.value;
 
-  await insertGif(gif, x, y);
+  await insertMedia(media, item, x, y);
 }
 
-async function insertAtViewportCenter(gif: GifItem): Promise<void> {
+async function insertAtViewportCenter(
+  media: MediaTypeId,
+  item: MediaItem,
+): Promise<void> {
   if (!driver) return;
   const res = await driver.issueCommand({
     type: "command:camera:get-viewport-rect",
@@ -305,5 +332,10 @@ async function insertAtViewportCenter(gif: GifItem): Promise<void> {
   });
   if (!driver || res.res.error !== undefined) return;
   const { rect } = res.res.value;
-  await insertGif(gif, rect.x + rect.width / 2, rect.y + rect.height / 2);
+  await insertMedia(
+    media,
+    item,
+    rect.x + rect.width / 2,
+    rect.y + rect.height / 2,
+  );
 }

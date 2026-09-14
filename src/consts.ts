@@ -1,21 +1,24 @@
-import { MediaTypeConfig, MediaTypeId } from "./types";
+import { MediaTypeConfig, MediaTypeId, WebviewMediaType } from "./types";
 
 export const MEDIA_TYPES: MediaTypeConfig[] = [
   {
     id: "gifs",
     label: "GIFs",
+    singular: "GIF",
     plural: "GIFs",
     screenWidth: 220,
   },
   {
     id: "stickers",
     label: "Stickers",
+    singular: "sticker",
     plural: "stickers",
     screenWidth: 180,
   },
   {
     id: "clips",
     label: "Clips",
+    singular: "clip",
     plural: "clips",
     screenWidth: 260,
   },
@@ -29,6 +32,10 @@ export function mediaTypeConfig(id: string): MediaTypeConfig {
     MEDIA_TYPES.find((type) => type.id === DEFAULT_MEDIA_TYPE)!
   );
 }
+
+export const WEBVIEW_MEDIA_TYPES: WebviewMediaType[] = MEDIA_TYPES.map(
+  ({ id, label, plural }) => ({ id, label, plural }),
+);
 
 export const PER_PAGE = 24;
 

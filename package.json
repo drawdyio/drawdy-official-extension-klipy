@@ -1,7 +1,7 @@
 {
     "name": "drawdy-official-extension-klipy",
-    "version": "0.1.0",
-    "description": "Klipy GIF search drawdy extension.",
+    "version": "0.2.0",
+    "description": "Klipy GIF, sticker and clip search drawdy extension.",
     "license": "UNLICENSED",
     "private": true,
     "type": "module",

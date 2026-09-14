@@ -3,39 +3,55 @@ export type MediaTypeId = "gifs" | "stickers" | "clips";
 export type MediaTypeConfig = {
   id: MediaTypeId;
   label: string;
+  singular: string;
   plural: string;
   screenWidth: number;
 };
 
-export type GifFile = {
+export type WebviewMediaType = Pick<MediaTypeConfig, "id" | "label" | "plural">;
+
+export type MediaFile = {
   url: string;
   width: number;
   height: number;
 };
 
-export type GifItem = {
+export type MediaItem = {
   id: string;
   title: string;
-  preview: GifFile;
-  full: GifFile;
+  preview: MediaFile;
+  full: MediaFile;
 };
 
 export type SearchErrorKind = "network" | "other";
 
 export type WebviewToDriver =
   | { type: "ready" }
-  | { type: "search"; requestId: number; query: string; page: number }
-  | { type: "drop-gif"; gif: GifItem; x: number; y: number }
-  | { type: "insert-gif"; gif: GifItem };
+  | {
+      type: "search";
+      requestId: number;
+      media: MediaTypeId;
+      query: string;
+      page: number;
+    }
+  | {
+      type: "drop-media";
+      media: MediaTypeId;
+      item: MediaItem;
+      x: number;
+      y: number;
+    }
+  | { type: "insert-media"; media: MediaTypeId; item: MediaItem };
 
 export type DriverToWebview =
-  | { type: "init" }
+  | { type: "init"; mediaTypes: WebviewMediaType[]; defaultMedia: MediaTypeId }
   | {
       type: "results";
       requestId: number;
+      media: MediaTypeId;
       query: string;
       page: number;
-      items: GifItem[];
+      items: MediaItem[];
       hasNext: boolean;
     }
   | {

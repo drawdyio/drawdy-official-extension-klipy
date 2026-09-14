@@ -20,7 +20,6 @@ header {
     padding: 10px 12px 8px;
     border-bottom: 1px solid var(--drawdy-border, #e5e5e5);
 }
-.hint { font-size: 11px; color: var(--drawdy-muted-foreground, #888); margin: 8px 0 0; }
 .input {
     width: 100%;
     padding: 7px 10px;
@@ -44,6 +43,41 @@ header {
     cursor: pointer;
 }
 .btn:hover { filter: brightness(0.97); }
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 3px;
+    border-radius: var(--drawdy-radius-md, 8px);
+    background: var(--drawdy-surface, #f4f4f4);
+}
+.tab {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.3;
+    border-radius: var(--drawdy-radius-sm, 6px);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--drawdy-muted-foreground, #888);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s;
+}
+.tab:hover { color: var(--drawdy-foreground, #111); }
+.tab[aria-selected="true"] {
+    background: var(--drawdy-background, #fff);
+    border-color: var(--drawdy-border, #e5e5e5);
+    color: var(--drawdy-foreground, #111);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.tab:focus-visible {
+    outline: 2px solid var(--drawdy-ring, var(--drawdy-primary, #6366f1));
+    outline-offset: 1px;
+}
 main { flex: 1; overflow-y: auto; padding: 8px 12px 12px; }
 .section-title {
     font-size: 11px;
@@ -75,6 +109,17 @@ main { flex: 1; overflow-y: auto; padding: 8px 12px 12px; }
 }
 .tile:active { cursor: grabbing; }
 .tile.dragging { opacity: 0.4; transform: none; box-shadow: none; }
+/* Stickers are transparent; a faint checkerboard keeps their edges readable
+   in both themes without competing with the artwork. */
+.tile.sticker {
+    background-color: var(--drawdy-surface, #f4f4f4);
+    background-image:
+        linear-gradient(45deg, var(--drawdy-surface2, #e8e8e8) 25%, transparent 25%, transparent 75%, var(--drawdy-surface2, #e8e8e8) 75%),
+        linear-gradient(45deg, var(--drawdy-surface2, #e8e8e8) 25%, transparent 25%, transparent 75%, var(--drawdy-surface2, #e8e8e8) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+}
+.tile.sticker img { padding: 6px; }
 .tile img {
     display: block;
     width: 100%;
@@ -115,7 +160,7 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
 <body>
 <header>
     <input id="search" class="input" type="text" placeholder="Search KLIPY" autocomplete="off" spellcheck="false" />
-    <p class="hint">Drag a GIF onto the canvas, or click to drop it at the center.</p>
+    <div id="tabs" class="tabs" role="tablist" aria-label="Media type"></div>
 </header>
 <main id="list">
     <p id="section-title" class="section-title"></p>
@@ -140,14 +185,19 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
     var $ = function (id) { return document.getElementById(id); };
     var search = $("search");
     var styling = $("styling");
+    var tabs = $("tabs");
     var list = $("list");
     var sectionTitle = $("section-title");
     var cols = [$("col0"), $("col1")];
     var status = $("status");
     var sentinel = $("sentinel");
 
+    var FALLBACK_MEDIA = { id: "gifs", label: "GIFs", plural: "GIFs" };
+
     var state = {
         started: false,
+        mediaTypes: [],
+        media: FALLBACK_MEDIA.id,
         query: "",
         page: 0,
         hasNext: false,
@@ -182,6 +232,81 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
         }
     }
 
+    function mediaConfig(id) {
+        for (var i = 0; i < state.mediaTypes.length; i++) {
+            if (state.mediaTypes[i].id === id) return state.mediaTypes[i];
+        }
+        return state.mediaTypes[0] || FALLBACK_MEDIA;
+    }
+
+    function renderTabs() {
+        tabs.innerHTML = "";
+        tabs.hidden = state.mediaTypes.length < 2;
+        for (var i = 0; i < state.mediaTypes.length; i++) {
+            var type = state.mediaTypes[i];
+            var button = document.createElement("button");
+            button.className = "tab";
+            button.type = "button";
+            button.setAttribute("role", "tab");
+            button.setAttribute("data-media", type.id);
+            button.textContent = type.label;
+            button.addEventListener("click", onTabClick);
+            button.addEventListener("keydown", onTabKeydown);
+            tabs.appendChild(button);
+        }
+        updateChrome();
+    }
+
+    function onTabClick(e) {
+        selectMedia(e.currentTarget.getAttribute("data-media"));
+    }
+
+    // Left/Right (and Home/End) move between tabs, per the WAI-ARIA tabs
+    // pattern; the newly focused tab is selected right away.
+    function onTabKeydown(e) {
+        var buttons = tabs.children;
+        var count = buttons.length;
+        if (!count) return;
+        var index = -1;
+        for (var i = 0; i < count; i++) {
+            if (buttons[i] === e.currentTarget) index = i;
+        }
+        var next = index;
+        if (e.key === "ArrowRight") next = (index + 1) % count;
+        else if (e.key === "ArrowLeft") next = (index - 1 + count) % count;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = count - 1;
+        else return;
+        e.preventDefault();
+        buttons[next].focus();
+        selectMedia(buttons[next].getAttribute("data-media"));
+    }
+
+    // Placeholder and the selected tab both follow the active media type.
+    function updateChrome() {
+        var cfg = mediaConfig(state.media);
+        search.placeholder = "Search KLIPY " + cfg.plural;
+        var buttons = tabs.children;
+        for (var i = 0; i < buttons.length; i++) {
+            var selected = buttons[i].getAttribute("data-media") === state.media;
+            buttons[i].setAttribute("aria-selected", selected ? "true" : "false");
+            buttons[i].tabIndex = selected ? 0 : -1;
+        }
+    }
+
+    function selectMedia(id) {
+        if (!id || id === state.media) return;
+        state.media = id;
+        updateChrome();
+        if (debounceTimer) {
+            // Flush a pending edit so the new tab searches what is typed now.
+            clearTimeout(debounceTimer);
+            debounceTimer = null;
+            state.query = search.value.trim();
+        }
+        startSearch();
+    }
+
     function clearResults() {
         cols[0].innerHTML = "";
         cols[1].innerHTML = "";
@@ -202,6 +327,7 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
         api.postMessage({
             type: "search",
             requestId: state.pendingId,
+            media: state.media,
             query: state.query,
             page: page
         });
@@ -221,9 +347,9 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
         if (top <= bottom + LOAD_MORE_MARGIN) request(state.page + 1);
     }
 
-    function makeTile(item, ratio) {
+    function makeTile(item, media) {
         var tile = document.createElement("div");
-        tile.className = "tile";
+        tile.className = media === "stickers" ? "tile sticker" : "tile";
         tile.title = item.title;
 
         var img = document.createElement("img");
@@ -272,13 +398,14 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
             pressing = false;
             if (dragging) {
                 api.postMessage({
-                    type: "drop-gif",
-                    gif: item,
+                    type: "drop-media",
+                    media: media,
+                    item: item,
                     x: e.clientX,
                     y: e.clientY
                 });
             } else {
-                api.postMessage({ type: "insert-gif", gif: item });
+                api.postMessage({ type: "insert-media", media: media, item: item });
             }
         });
 
@@ -291,7 +418,7 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
         return tile;
     }
 
-    function appendItems(items) {
+    function appendItems(items, media) {
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
             var ratio = item.preview.width > 0 && item.preview.height > 0
@@ -299,7 +426,7 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
                 : 1;
             var col = state.heights[0] <= state.heights[1] ? 0 : 1;
             state.heights[col] += ratio;
-            cols[col].appendChild(makeTile(item, ratio));
+            cols[col].appendChild(makeTile(item, media));
             state.count++;
         }
     }
@@ -339,16 +466,21 @@ footer strong { font-weight: 700; letter-spacing: 0.02em; }
         if (raw.type === "init") {
             if (state.started) return;
             state.started = true;
+            state.mediaTypes = Array.isArray(raw.mediaTypes) && raw.mediaTypes.length
+                ? raw.mediaTypes
+                : [FALLBACK_MEDIA];
+            state.media = mediaConfig(raw.defaultMedia).id;
+            renderTabs();
             startSearch();
         } else if (raw.type === "results") {
             if (raw.requestId !== state.pendingId) return;
             state.loading = false;
             state.page = raw.page;
             state.hasNext = raw.hasNext;
-            appendItems(raw.items || []);
+            appendItems(raw.items || [], raw.media || state.media);
             if (state.count === 0) {
                 setStatus(state.query
-                    ? 'No GIFs for "' + state.query + '"'
+                    ? "No " + mediaConfig(state.media).plural + ' for "' + state.query + '"'
                     : "Nothing trending right now.", false);
             } else {
                 setStatus("", false);
