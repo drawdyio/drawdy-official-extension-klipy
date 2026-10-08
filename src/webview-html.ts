@@ -5,6 +5,23 @@ export const WEBVIEW_HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style id="styling">:root{/*__DRAWDY_STYLING__*/}</style>
 <style>
+/* Drawdy design tokens the host does not forward (see frontend/styles/globals.css
+   in the drawdy repo). The host sets color-scheme, so light-dark() follows its theme. */
+:root {
+    --text-primary: light-dark(rgb(0 0 0 / 0.95), rgb(255 255 255 / 0.95));
+    --text-tertiary: light-dark(rgb(0 0 0 / 0.5), rgb(255 255 255 / 0.5));
+    --text-disabled: light-dark(rgb(0 0 0 / 0.3), rgb(255 255 255 / 0.3));
+    --border-subtle: light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.02));
+    --border-medium: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.08));
+    --border-strong: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.12));
+    --interaction-subtle: light-dark(#fff, rgb(255 255 255 / 0.04));
+    --interaction-hover: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.08));
+    --interaction-active: light-dark(rgb(0 0 0 / 0.02), rgb(255 255 255 / 0.04));
+    --control-surface: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.12));
+    --control-surface-subtle: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.06));
+    --control-surface-hover: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.18));
+    --focus-ring: var(--drawdy-ring, #b3e000);
+}
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
@@ -20,18 +37,35 @@ header {
     padding: 10px 12px 8px;
     border-bottom: 1px solid var(--drawdy-border, #e5e5e5);
 }
+/* Mirrors drawdy's <Input size="38"> */
 .input {
     width: 100%;
-    padding: 7px 10px;
-    font-size: 13px;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
     font-family: inherit;
-    color: var(--drawdy-foreground, #111);
-    background: var(--drawdy-surface, var(--drawdy-surface, #f4f4f4));
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    border-radius: var(--drawdy-radius-md, 8px);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+    color: var(--text-primary);
+    background: var(--interaction-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
     outline: none;
+    transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.input:focus { border-color: var(--drawdy-ring, var(--drawdy-primary, #6366f1)); }
+.input::placeholder { color: var(--text-disabled); }
+.input:hover {
+    border-color: var(--border-medium);
+    background: var(--interaction-hover);
+}
+.input:hover::placeholder,
+.input:focus-visible::placeholder { color: var(--text-primary); }
+.input:focus-visible {
+    border-color: var(--border-strong);
+    background: var(--interaction-active);
+    box-shadow: 0 0 0 2px var(--drawdy-background, #fff), 0 0 0 3px var(--focus-ring);
+}
 .btn {
     padding: 6px 10px;
     font-size: 12px;
@@ -43,41 +77,47 @@ header {
     cursor: pointer;
 }
 .btn:hover { filter: brightness(0.97); }
+/* Mirrors drawdy's <TabsList variant="segmented" size="36"> / <TabsTrigger> */
 .tabs {
     display: flex;
+    align-items: center;
     gap: 4px;
+    height: 36px;
     margin-top: 8px;
-    padding: 3px;
-    border-radius: var(--drawdy-radius-md, 8px);
-    background: var(--drawdy-surface, #f4f4f4);
+    padding: 2px;
+    border-radius: 10px;
+    background: var(--control-surface-subtle);
 }
 .tab {
     flex: 1;
     min-width: 0;
-    padding: 5px 8px;
-    font-size: 12px;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
     font-family: inherit;
+    font-size: 14px;
+    line-height: 20px;
     font-weight: 500;
-    line-height: 1.3;
-    border-radius: var(--drawdy-radius-sm, 6px);
-    border: 1px solid transparent;
+    border: 0;
+    border-radius: 8px;
     background: transparent;
-    color: var(--drawdy-muted-foreground, #888);
+    color: var(--text-tertiary);
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.12s, color 0.12s;
+    outline: none;
+    transition: color 0.15s, background-color 0.15s;
 }
-.tab:hover { color: var(--drawdy-foreground, #111); }
+.tab[aria-selected="false"]:hover {
+    background: var(--control-surface-hover);
+    color: var(--text-primary);
+}
 .tab[aria-selected="true"] {
-    background: var(--drawdy-background, #fff);
-    border-color: var(--drawdy-border, #e5e5e5);
-    color: var(--drawdy-foreground, #111);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    background: var(--control-surface);
+    color: var(--text-primary);
 }
-.tab:focus-visible {
-    outline: 2px solid var(--drawdy-ring, var(--drawdy-primary, #6366f1));
-    outline-offset: 1px;
-}
+.tab:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 main { flex: 1; overflow-y: auto; padding: 8px 12px 12px; }
 .section-title {
     font-size: 11px;

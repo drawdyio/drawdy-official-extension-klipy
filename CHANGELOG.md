@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Search input and GIFs / Stickers / Clips tabs now match drawdy's own input and segmented tabs in both themes.
+
 ## 0.2.0
 
 - Stickers and clips: the palette now has GIFs / Stickers / Clips tabs, each with its own trending feed and search.

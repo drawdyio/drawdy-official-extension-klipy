@@ -1,7 +1,7 @@
 {
   "driverId": "drawdy.klipy",
   "driverName": "Klipy",
-  "driverVersion": "0.2.0",
+  "driverVersion": "0.2.1",
   "description": "Search Klipy's GIFs, stickers and clips, and drag them straight onto the canvas.",
   "main": "main.js",
   "icon": "assets/klipy.svg",
